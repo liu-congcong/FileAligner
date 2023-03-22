@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <assert.h>
+#include <unistd.h>
 #include "hash.h"
 #include "line.h"
 #define MAX_TARGETS 1024
@@ -165,6 +166,16 @@ int output(hashNode **hashTable, int n, char **headerLines, char **blankLines, c
     return 0;
 }
 
+int ioTest(char **fileList, int files)
+{
+    FILE *openFile = fopen(fileList[0], "wb");
+    assert (!openFile);
+    fclose(openFile);
+    for (int i = 1; i < files; i++)
+        assert (!access(fileList[i], R_OK));
+    return 0;
+}
+
 int main(int argc, char *argv[])
 {
     char **fileList = malloc(1024 * sizeof(char *));
@@ -221,6 +232,7 @@ int main(int argc, char *argv[])
         puts("    -s/--seperator: <table|comma|space>\n");
         exit(EXIT_SUCCESS);
     }
+    ioTest(fileList, files);
 
     hashNode **hashTable = malloc(HASHSIZE * sizeof(hashNode *));
     memset(hashTable, 0, HASHSIZE * sizeof(hashNode *));
