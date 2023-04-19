@@ -22,6 +22,24 @@ int getColumns(char *string, char seperator)
     return columns;
 }
 
+int getComplementaryColumns(int **complementaryColumnList, int *columnList, int columns, int totalColumns)
+{
+    int *totalColumnList = malloc(totalColumns * sizeof(int));
+    *complementaryColumnList = malloc((totalColumns - columns) * sizeof(int));
+    int complementaryColumns = 0;
+    for (int i = 0; i < totalColumns; i++)
+        totalColumnList[i] = 1;
+    for (int i = 0; i < columns; i++)
+        totalColumnList[columnList[i]] = 0;
+    for (int i = 0; i < totalColumns; i++)
+    {
+        if (totalColumnList[i])
+            (*complementaryColumnList)[complementaryColumns++] = i;
+    }
+    free(totalColumnList);
+    return complementaryColumns;
+}
+
 int splitLine(lineColumn *lineColumns, char *line, int length, char seperator)
 {
     int linePosition = 0;
