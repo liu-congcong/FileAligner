@@ -61,7 +61,7 @@ int insterHash(hashNode **hashTable, char *key, char *value, int n, int i)
     return 0;
 }
 
-int readFiles(hashNode **hashTable, char **headerLines, char **blankLines, char **fileList, char seperator, int **targets, int files)
+int readFiles(hashNode **hashTable, char **targetHeaderLine, char **headerLines, char **blankLines, char **fileList, char seperator, int **targets, int files)
 {
     char *buffer = malloc(MAX_LENGTH * sizeof(char));
     int lineLength;
@@ -79,10 +79,15 @@ int readFiles(hashNode **hashTable, char **headerLines, char **blankLines, char 
         /* columns of file */
         int columns = getColumns(buffer, seperator);
 
-        /* all columns */
-        int *allTargetList = malloc(columns * sizeof(int));
-        for (int column = 0; column < columns; column++)
-            allTargetList[column] = column;
+        /* targets */
+        int *selectedTargetList = targets[i];
+        int selectedTargets = 0;
+        while (selectedTargetList[selectedTargets] >= 0)
+            selectedTargets++;
+
+        /* targets removed columns */
+        int *notSelectedTargetList = NULL;
+        int notSelectedTargets = getComplementaryColumns(&notSelectedTargetList, targets[i], selectedTargets, columns);
 
         /* line struct */
         lineColumn *lineColumns = malloc(columns * sizeof(lineColumn));
@@ -91,18 +96,19 @@ int readFiles(hashNode **hashTable, char **headerLines, char **blankLines, char 
         splitLine(lineColumns, buffer, lineLength, seperator);
         
         /* rebuild header */
-        headerLines[i] = buildLine(lineColumns, allTargetList, columns);
+        headerLines[i] = buildLine(lineColumns, notSelectedTargetList, notSelectedTargets);
 
         /* blank line */
-        char *blankLine = malloc(columns * sizeof(char));
-        memset(blankLine, SEP, columns);
-        blankLine[columns - 1] = 0;
+        char *blankLine = malloc(notSelectedTargets * sizeof(char));
+        memset(blankLine, SEP, notSelectedTargets);
+        blankLine[notSelectedTargets - 1] = 0;
         blankLines[i] = blankLine;
 
-        int *selectedTargetList = targets[i];
-        int selectedTargets = 0;
-        while (selectedTargetList[selectedTargets] >= 0)
-            selectedTargets++;
+        if (i == 0)
+        {
+            *targetHeaderLine = malloc(selectedTargets * sizeof(char));
+            memset(*targetHeaderLine, SEP, selectedTargets);
+        }
 
         while (fgets(buffer, MAX_LENGTH, openFile))
         {
@@ -111,12 +117,12 @@ int readFiles(hashNode **hashTable, char **headerLines, char **blankLines, char 
                 buffer[--lineLength] = 0;
             splitLine(lineColumns, buffer, lineLength, seperator);
             char *key = buildLine(lineColumns, selectedTargetList, selectedTargets);
-            char *value = buildLine(lineColumns, allTargetList, columns);
+            char *value = buildLine(lineColumns, notSelectedTargetList, notSelectedTargets);
             /* printf("key: %s, value: %s\n", key, value) */
             insterHash(hashTable, key, value, files, i);
         }
         fclose(openFile);
-        free(allTargetList);
+        free(notSelectedTargetList);
         free(lineColumns);
     }
     return 0;
@@ -125,23 +131,27 @@ int readFiles(hashNode **hashTable, char **headerLines, char **blankLines, char 
 int *getTargets(char *columns_string)
 {
     int *columns = malloc(MAX_TARGETS * sizeof(int));
+    int column;
     int column_index = 0;
     char *token = strtok(columns_string, ",");
     while (token)
     {
-        columns[column_index++] = atoi(token) - 1;
+        column = atoi(token);
+        assert(column > 0);
+        columns[column_index++] = column - 1;
         token = strtok(NULL, ",");
     }
     columns[column_index] = -1;
     return columns;
 }
 
-int output(hashNode **hashTable, int n, char **headerLines, char **blankLines, char *output)
+int output(hashNode **hashTable, int n, char *targetHeaderLine, char **headerLines, char **blankLines, char *output)
 {
     FILE *openFile = fopen(output, "w");
     assert(openFile);
 
     /* write header */
+    fputs(targetHeaderLine, openFile);
     for (int i = 0; i < n; i++)
     {
         fputs(headerLines[i], openFile);
@@ -153,6 +163,8 @@ int output(hashNode **hashTable, int n, char **headerLines, char **blankLines, c
         hashNode *node = hashTable[i];
         while (node)
         {
+            fputs(node->key, openFile);
+            fputc(SEP, openFile);
             for (int j = 0; j < n; j++)
             {
                 /* printf("key: %s, value: %s\n", node->key, (node->values)[j] ? (node->values)[j] : blankLines[j]) */
@@ -247,10 +259,11 @@ int main(int argc, char *argv[])
     memset(hashTable, 0, HASHSIZE * sizeof(hashNode *));
 
     char **headerLines = malloc(targets * sizeof(char *));
+    char *targetHeaderLine = NULL;
     char **blankLines = malloc(targets * sizeof(char *));
 
-    readFiles(hashTable, headerLines, blankLines, fileList + 1, seperator, targetList, targets);
-    output(hashTable, targets, headerLines, blankLines, fileList[0]);
+    readFiles(hashTable, &targetHeaderLine, headerLines, blankLines, fileList + 1, seperator, targetList, targets);
+    output(hashTable, targets, targetHeaderLine, headerLines, blankLines, fileList[0]);
     /* free */
     return 0;
 }
