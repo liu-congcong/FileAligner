@@ -5,18 +5,19 @@
 #include <stdlib.h>
 #define SEP '\t'
 
+/* lineColumn *lineColumns = malloc(columns * sizeof(lineColumn)) */
 typedef struct lineColumn
 {
     char *column;
     int length;
 } lineColumn;
 
-int getColumns(char *string, char seperator)
+int getColumns(char *string, char separator)
 {
     int columns = 1;
     while (*string)
     {
-        if (*string++ == seperator)
+        if (*string++ == separator)
             columns++;
     }
     return columns;
@@ -40,29 +41,30 @@ int getComplementaryColumns(int **complementaryColumnList, int *columnList, int 
     return complementaryColumns;
 }
 
-int splitLine(lineColumn *lineColumns, char *line, int length, char seperator)
+int splitLine(lineColumn *columnList, char *string, char separator)
 {
-    int linePosition = 0;
-    int linePosition_ = 0;
-    for (; linePosition < length; linePosition++)
+    int left = 0;
+    int right = 0;
+    int column = 0;
+    while (string[right])
     {
-        /* 012#45#789# */
-        if (line[linePosition] == seperator)
+        if (string[right] == separator)
         {
-            lineColumns->column = line + linePosition_;
-            lineColumns->length = linePosition - linePosition_;
-            linePosition_ = linePosition + 1;
-            lineColumns++;
+            columnList[column].column = string + left;
+            columnList[column].length = right - left;
+            left = right + 1;
+            column++;
         }
+        right++;
     }
-    lineColumns->column = line + linePosition_;
-    lineColumns->length = linePosition - linePosition_;
+    columnList[column].column = string + left;
+    columnList[column].length = right - left;
     return 0;
 }
 
 char *buildLine(lineColumn *lineColumns, int *columnList, int columns)
 {
-    int length = columns; /* strlen + 1*/
+    int length = columns; /* columns + separator + 0 = strlen + 1*/
     for (int i = 0; i < columns; i++)
         length += lineColumns[columnList[i]].length;
 
