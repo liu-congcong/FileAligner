@@ -254,8 +254,8 @@ int main(int argc, char *argv[])
         puts("\nAlign files according to the selected columns (https://github.com/liu-congcong/FileAligner)");
         puts("Usage:");
         printf("    %s -i <files> -t <cols> -o <file> [-s <sep>]\n", argv[0]);
-        printf("    e.g.: %s -i input1 input2 -t 1,2,8 1,6,8 -o output -s t\n", argv[0]);
-        printf("          %s -i input1 input2 input3 -t 10,1 -o output -s c\n", argv[0]);
+        printf("    %s -i input1 input2 -t 1,2,8 1,6,8 -o output -s t\n", argv[0]);
+        printf("    %s -i input1 input2 input3 -t 10,1 -o output -s c\n", argv[0]);
         puts("Options:");
         puts("    -i/--inputs: <input1> ... <inputN> files with a header line");
         puts("    -t/--targets: <1col1,...,1colM> ... <Ncol1,...,NcolM>");
