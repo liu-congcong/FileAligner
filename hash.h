@@ -6,9 +6,8 @@ unsigned int elfHash(char *string)
 {
     unsigned int hash = 0;
     unsigned int x = 0;
-    unsigned int i = 0;
 
-    for (i = 0; i < strlen(string); i++)
+    for (unsigned int i = 0; i < strlen(string); i++)
     {
         hash = (hash << 4) + string[i];
         if ((x = hash & 0xF0000000L) != 0)
