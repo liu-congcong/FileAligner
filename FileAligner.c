@@ -40,20 +40,20 @@ int insterHash(hashNode **hashTable, char *key, char *value, int n, int i)
             hashNode *newNode = malloc(sizeof(hashNode));
             newNode->key = key;
             newNode->values = malloc(n * sizeof(char *));
+            memset(newNode->values, 0, n * sizeof(char *));
             newNode->values[i] = value;
             newNode->next = NULL;
             node->next = newNode;
         }
         else
-        {
             node->values[i] = value;
-        }
     }
     else
     {
         hashNode *node = malloc(sizeof(hashNode));
         node->key = key;
         node->values = malloc(n * sizeof(char *));
+        memset(node->values, 0, n * sizeof(char *));
         node->values[i] = value;
         node->next = NULL;
         hashTable[hash] = node;
@@ -88,6 +88,12 @@ int readFiles(hashNode **hashTable, char **headerLines, char **blankLines, char 
         int *nonTargetColumnList = NULL;
         int notSelectedTargets = getComplementaryColumns(&nonTargetColumnList, targetColumnList, targetColumns, columns);
 
+        if (!notSelectedTargets)
+        {
+            notSelectedTargets = targetColumns;
+            nonTargetColumnList = targetColumnList;
+        }
+
         /* line struct */
         lineColumn *lineColumns = malloc(columns * sizeof(lineColumn));
 
@@ -111,7 +117,7 @@ int readFiles(hashNode **hashTable, char **headerLines, char **blankLines, char 
             splitLine(lineColumns, buffer, separator);
             char *key = buildLine(lineColumns, targetColumnList, targetColumns);
             char *value = buildLine(lineColumns, nonTargetColumnList, notSelectedTargets);
-            /* printf("key: %s, value: %s\n", key, value) */
+            /* printf("file: %s, key: %s, value: %s\n", fileList[i], key, value); */
             insterHash(hashTable, key, value, files, i);
         }
         fclose(openFile);
@@ -178,7 +184,7 @@ int output(hashNode **hashTable, int n, char *headerLine, char **blankLines, cha
             fputc(SEP, openFile);
             for (int j = 0; j < n; j++)
             {
-                /* printf("key: %s, value: %s\n", node->key, (node->values)[j] ? (node->values)[j] : blankLines[j]) */
+                /* printf("key: %s, value: %s\n", node->key, (node->values)[j] ? (node->values)[j] : blankLines[j]); */
                 fputs((node->values)[j] ? (node->values)[j] : blankLines[j], openFile);
                 fputc(j == n - 1 ? '\n' : SEP, openFile);
             }
