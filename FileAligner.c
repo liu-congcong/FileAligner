@@ -97,12 +97,17 @@ int readFiles(Node **hashTable, char **headerLines, char **blankLines, char **fi
 
         /* targets removed columns */
         int *nonTargetColumnList = NULL;
-        int notSelectedTargets = getComplementaryColumns(&nonTargetColumnList, targetColumnList, targetColumns, columns);
-
-        if (!notSelectedTargets)
+        int notSelectedTargets;
+        if (targetColumns < columns)
+        {
+            notSelectedTargets = columns - targetColumns;
+            nonTargetColumnList = getComplementaryColumns(columns, targetColumns, targetColumnList);
+        }
+        else
         {
             notSelectedTargets = targetColumns;
-            nonTargetColumnList = targetColumnList;
+            nonTargetColumnList = malloc(targetColumns * sizeof(int));
+            memcpy(nonTargetColumnList, targetColumnList, targetColumns * sizeof(int));
         }
 
         /* line struct */
