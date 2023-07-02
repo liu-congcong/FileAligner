@@ -4,23 +4,25 @@
 #include <string.h>
 #include <assert.h>
 #include <unistd.h>
+#include <stdint.h>
 #include "hash.h"
 #include "line.h"
 #define MAX_TARGETS 1024
 #define MAX_LENGTH 1024*1024*1024
-#define HASHSIZE 1000000
+#define HASHSIZE 100000
 
-typedef struct hashNode
+typedef struct Node
 {
     char *key;
     char **values;
-    struct hashNode *next;
-} hashNode;
+    uint8_t *flags;
+    struct Node *next;
+} Node;
 
-int insterHash(hashNode **hashTable, char *key, char *value, int n, int i)
+int insterHash(Node **hashTable, char *key, char *value, int n, int i)
 {
     int hash = elfHash(key) % HASHSIZE;
-    hashNode *node = hashTable[hash];
+    Node *node = hashTable[hash];
     bool flag = true;
     if (node)
     {
@@ -37,31 +39,40 @@ int insterHash(hashNode **hashTable, char *key, char *value, int n, int i)
         }
         if (flag)
         {
-            hashNode *newNode = malloc(sizeof(hashNode));
+            Node *newNode = malloc(sizeof(Node));
             newNode->key = key;
             newNode->values = malloc(n * sizeof(char *));
             memset(newNode->values, 0, n * sizeof(char *));
             newNode->values[i] = value;
+            newNode->flags = malloc(n * sizeof(uint8_t));
+            memset(newNode->flags, 0, n * sizeof(uint8_t));
+            newNode->flags[i] = 1;
             newNode->next = NULL;
             node->next = newNode;
         }
         else
+        {
+            assert(!node->flags[i]);
             node->values[i] = value;
+        }
     }
     else
     {
-        hashNode *node = malloc(sizeof(hashNode));
+        Node *node = malloc(sizeof(Node));
         node->key = key;
         node->values = malloc(n * sizeof(char *));
         memset(node->values, 0, n * sizeof(char *));
         node->values[i] = value;
+        node->flags = malloc(n * sizeof(uint8_t));
+        memset(node->flags, 0, n * sizeof(uint8_t));
+        node->flags[i] = 1;
         node->next = NULL;
         hashTable[hash] = node;
     }
     return 0;
 }
 
-int readFiles(hashNode **hashTable, char **headerLines, char **blankLines, char **fileList, char separator, int **targets, int targetColumns, int files)
+int readFiles(Node **hashTable, char **headerLines, char **blankLines, char **fileList, char separator, int **targets, int targetColumns, int files)
 {
     char *buffer = malloc(MAX_LENGTH * sizeof(char));
     int lineLength;
@@ -167,7 +178,7 @@ char *createHeaderLine(int separators, char **fieldList, int fields)
     return buffer;
 }
 
-int output(hashNode **hashTable, int n, char *headerLine, char **blankLines, char *output)
+int output(Node **hashTable, int n, char *headerLine, char **blankLines, char *output)
 {
     FILE *openFile = fopen(output, "w");
     assert(openFile);
@@ -177,7 +188,7 @@ int output(hashNode **hashTable, int n, char *headerLine, char **blankLines, cha
 
     for (int i = 0; i < HASHSIZE; i++)
     {
-        hashNode *node = hashTable[i];
+        Node *node = hashTable[i];
         while (node)
         {
             fputs(node->key, openFile);
@@ -272,8 +283,8 @@ int main(int argc, char *argv[])
     }
     ioTest(fileList, files);
 
-    hashNode **hashTable = malloc(HASHSIZE * sizeof(hashNode *));
-    memset(hashTable, 0, HASHSIZE * sizeof(hashNode *));
+    Node **hashTable = malloc(HASHSIZE * sizeof(Node *));
+    memset(hashTable, 0, HASHSIZE * sizeof(Node *));
 
     char **headerLines = malloc(targets * sizeof(char *));
     char **blankLines = malloc(targets * sizeof(char *));
