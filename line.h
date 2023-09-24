@@ -12,10 +12,6 @@ typedef struct lineColumn
     int length;
 } lineColumn;
 
-/*
-    char *string: line buffer
-    char separator: separator
-*/
 int getColumns(char *string, char separator)
 {
     int columns = 1;
@@ -27,30 +23,25 @@ int getColumns(char *string, char separator)
     return columns;
 }
 
-/*
-parameters:
-- int totalColumns: 行包含的总行数
-- int columns: 已选择的列数
-- int **columnList: 已选择的列索引
-return:
-- int *: 互补列索引
-*/
-int *getComplementaryColumns(int totalColumns, int columns, int *columnList)
+int getComplementaryColumns(int **complementaryColumnList, int *columnList, int columns, int totalColumns)
 {
-    assert(totalColumns > columns);
-    int *totalColumnList = malloc(totalColumns * sizeof(int));
-    memset(totalColumnList, 1, totalColumns * sizeof(int));
-    int *complementaryColumnList = malloc((totalColumns - columns) * sizeof(int));
-    for (int i = 0; i < columns; i++)
-        totalColumnList[columnList[i]] = 0;
     int complementaryColumns = 0;
-    for (int i = 0; i < totalColumns; i++)
+    if (totalColumns > columns)
     {
-        if (totalColumnList[i])
-            complementaryColumnList[complementaryColumns++] = i;
+        int *totalColumnList = malloc(totalColumns * sizeof(int));
+        *complementaryColumnList = malloc((totalColumns - columns) * sizeof(int));
+        for (int i = 0; i < totalColumns; i++)
+            totalColumnList[i] = 1;
+        for (int i = 0; i < columns; i++)
+            totalColumnList[columnList[i]] = 0;
+        for (int i = 0; i < totalColumns; i++)
+        {
+            if (totalColumnList[i])
+                (*complementaryColumnList)[complementaryColumns++] = i;
+        }
+        free(totalColumnList);
     }
-    free(totalColumnList);
-    return complementaryColumnList;
+    return complementaryColumns;
 }
 
 int splitLine(lineColumn *columnList, char *string, char separator)

@@ -92,22 +92,19 @@ int readFiles(Node **hashTable, char **headerLines, char **blankLines, char **fi
 
         /* targets */
         int *targetColumnList = targets[i];
+
+        int *a = &targets[0][0];
         for (int j = 0; j < targetColumns; j++)
             assert(targetColumnList[j] < columns); /* target col <= max cols */
 
         /* targets removed columns */
         int *nonTargetColumnList = NULL;
-        int notSelectedTargets;
-        if (targetColumns < columns)
-        {
-            notSelectedTargets = columns - targetColumns;
-            nonTargetColumnList = getComplementaryColumns(columns, targetColumns, targetColumnList);
-        }
-        else
+        int notSelectedTargets = getComplementaryColumns(&nonTargetColumnList, targetColumnList, targetColumns, columns);
+
+        if (!notSelectedTargets)
         {
             notSelectedTargets = targetColumns;
-            nonTargetColumnList = malloc(targetColumns * sizeof(int));
-            memcpy(nonTargetColumnList, targetColumnList, targetColumns * sizeof(int));
+            nonTargetColumnList = targetColumnList;
         }
 
         /* line struct */
@@ -268,7 +265,11 @@ int main(int argc, char *argv[])
     {
         targets = files - 1;
         for (int i = 1; i < targets; i++)
-            targetList[i] = targetList[0];
+        {
+            targetList[i] = malloc(MAX_TARGETS * sizeof(int));
+            for (int j = 0; j < targets; j++)
+                targetList[i][j] = targetList[0][j];
+        }
     }
 
     if (files - 1 != targets || !fileList[0] || !targets)
@@ -293,6 +294,7 @@ int main(int argc, char *argv[])
 
     char **headerLines = malloc(targets * sizeof(char *));
     char **blankLines = malloc(targets * sizeof(char *));
+
     readFiles(hashTable, headerLines, blankLines, fileList + 1, separator, targetList, targetColumns, targets);
     char *headerLine = createHeaderLine(targetColumns, headerLines, targets);
     output(hashTable, targets, headerLine, blankLines, fileList[0]);
