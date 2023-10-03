@@ -1,3 +1,5 @@
+#ifndef __DATETIME_H__
+#define __DATETIME_H__
 #include <time.h>
 #include <stdlib.h>
 
@@ -10,3 +12,5 @@ char *printDatetime()
     strftime(formattedDatetime, 128, "%Y%m%d-%H%M%S.txt", timeInfo);
     return formattedDatetime;
 }
+
+#endif
