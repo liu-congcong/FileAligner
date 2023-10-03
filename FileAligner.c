@@ -5,10 +5,11 @@
 #include <assert.h>
 #include <unistd.h>
 #include <stdint.h>
+#include "datetime.h"
 #include "hash.h"
 #include "line.h"
 #define MAX_TARGETS 1024
-#define MAX_LENGTH 1024*1024*1024
+#define MAX_LENGTH 1024 * 1024 * 1024
 #define HASHSIZE 100000
 
 typedef struct Node
@@ -44,15 +45,23 @@ int insterHash(Node **hashTable, char *key, char *value, int n, int i)
             newNode->values = malloc(n * sizeof(char *));
             memset(newNode->values, 0, n * sizeof(char *));
             newNode->values[i] = value;
-            newNode->flags = malloc(n * sizeof(uint8_t));
-            memset(newNode->flags, 0, n * sizeof(uint8_t));
+            newNode->flags = malloc(n * sizeof(int));
+            memset(newNode->flags, 0, n * sizeof(int));
             newNode->flags[i] = 1;
             newNode->next = NULL;
             node->next = newNode;
         }
         else
         {
-            assert(!node->flags[i]);
+            if (node->flags[i])
+            {
+                printf("Duplicate keys \"%s\" are not allowed in the %dth file.\n", key, i + 1);
+                exit(EXIT_FAILURE);
+            }
+            else
+            {
+                node->flags[i] = 1;
+            }
             node->values[i] = value;
         }
     }
@@ -211,10 +220,10 @@ int output(Node **hashTable, int n, char *headerLine, char **blankLines, char *o
 int ioTest(char **fileList, int files)
 {
     FILE *openFile = fopen(fileList[0], "wb");
-    assert (openFile);
+    assert(openFile);
     fclose(openFile);
     for (int i = 1; i < files; i++)
-        assert (!access(fileList[i], R_OK));
+        assert(!access(fileList[i], R_OK));
     return 0;
 }
 
@@ -222,6 +231,7 @@ int main(int argc, char *argv[])
 {
     char **fileList = malloc(1024 * sizeof(char *));
     memset(fileList, 0, 1024);
+    fileList[0] = printDatetime();
     int files = 1;
     int **targetList = malloc(1023 * sizeof(int *));
     int targets = 0;
@@ -276,15 +286,16 @@ int main(int argc, char *argv[])
     {
         puts("\nAlign files according to the selected columns (https://github.com/liu-congcong/FileAligner)");
         puts("Usage:");
-        printf("    %s -i <files> -t <cols> -o <file> [-s <sep>]\n", argv[0]);
+        printf("    %s -i <files> -t <cols> [-o <file>] [-s <sep>]\n", argv[0]);
         printf("    %s -i input1 input2 -t 1,2,8 1,6,8 -o output -s t\n", argv[0]);
         printf("    %s -i input1 input2 input3 -t 10,1 -o output -s c\n", argv[0]);
+        printf("    %s -i input1 input2 input3 input4 input5 -t 1\n", argv[0]);
         puts("Options:");
         puts("    -i/--inputs: <input1> ... <inputN> files with a header line");
         puts("    -t/--targets: <1col1,...,1colM> ... <Ncol1,...,NcolM>");
         puts("                  <col1,...,colM> for all files");
-        puts("    -o/--output: <output>");
-        puts("    -s/--separator: <table|comma|space>\n");
+        printf("    -o/--output: <output> default: %s\n", printDatetime());
+        puts("    -s/--separator: <table|comma|space> default: table\n");
         exit(EXIT_SUCCESS);
     }
     ioTest(fileList, files);
