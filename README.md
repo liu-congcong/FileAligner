@@ -4,7 +4,7 @@ Align multiple files based on selected columns.
 
 ## Usage
 
-```bash
+```TEXT
 filenAligner v1.0.0
 Align multiple files based on selected columns.
 https://github.com/liu-congcong/fileAligner
