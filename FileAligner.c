@@ -1,15 +1,14 @@
+#include <assert.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
-#include <assert.h>
 #include <unistd.h>
-#include <stdint.h>
-#include "datetime.h"
 #include "hash.h"
 #include "line.h"
 #define MAX_TARGETS 1024
-#define MAX_LENGTH 1024 * 1024 * 1024
+#define MAX_LENGTH 1024*1024*1024
 #define HASHSIZE 100000
 
 typedef struct Node
@@ -45,23 +44,15 @@ int insterHash(Node **hashTable, char *key, char *value, int n, int i)
             newNode->values = malloc(n * sizeof(char *));
             memset(newNode->values, 0, n * sizeof(char *));
             newNode->values[i] = value;
-            newNode->flags = malloc(n * sizeof(int));
-            memset(newNode->flags, 0, n * sizeof(int));
+            newNode->flags = malloc(n * sizeof(uint8_t));
+            memset(newNode->flags, 0, n * sizeof(uint8_t));
             newNode->flags[i] = 1;
             newNode->next = NULL;
             node->next = newNode;
         }
         else
         {
-            if (node->flags[i])
-            {
-                printf("Duplicate keys \"%s\" are not allowed in the %dth file.\n", key, i + 1);
-                exit(EXIT_FAILURE);
-            }
-            else
-            {
-                node->flags[i] = 1;
-            }
+            assert(!node->flags[i]);
             node->values[i] = value;
         }
     }
@@ -101,19 +92,22 @@ int readFiles(Node **hashTable, char **headerLines, char **blankLines, char **fi
 
         /* targets */
         int *targetColumnList = targets[i];
-
-        int *a = &targets[0][0];
         for (int j = 0; j < targetColumns; j++)
             assert(targetColumnList[j] < columns); /* target col <= max cols */
 
         /* targets removed columns */
         int *nonTargetColumnList = NULL;
-        int notSelectedTargets = getComplementaryColumns(&nonTargetColumnList, targetColumnList, targetColumns, columns);
-
-        if (!notSelectedTargets)
+        int notSelectedTargets;
+        if (targetColumns < columns)
+        {
+            notSelectedTargets = columns - targetColumns;
+            nonTargetColumnList = getComplementaryColumns(columns, targetColumns, targetColumnList);
+        }
+        else
         {
             notSelectedTargets = targetColumns;
-            nonTargetColumnList = targetColumnList;
+            nonTargetColumnList = malloc(targetColumns * sizeof(int));
+            memcpy(nonTargetColumnList, targetColumnList, targetColumns * sizeof(int));
         }
 
         /* line struct */
@@ -139,7 +133,7 @@ int readFiles(Node **hashTable, char **headerLines, char **blankLines, char **fi
             splitLine(lineColumns, buffer, separator);
             char *key = buildLine(lineColumns, targetColumnList, targetColumns);
             char *value = buildLine(lineColumns, nonTargetColumnList, notSelectedTargets);
-            /* printf("file: %s, key: %s, value: %s\n", fileList[i], key, value); */
+            // printf("file: %s, key: %s, value: %s\n", fileList[i], key, value);
             insterHash(hashTable, key, value, files, i);
         }
         fclose(openFile);
@@ -220,10 +214,29 @@ int output(Node **hashTable, int n, char *headerLine, char **blankLines, char *o
 int ioTest(char **fileList, int files)
 {
     FILE *openFile = fopen(fileList[0], "wb");
-    assert(openFile);
+    assert (openFile);
     fclose(openFile);
     for (int i = 1; i < files; i++)
-        assert(!access(fileList[i], R_OK));
+        assert (!access(fileList[i], R_OK));
+    return 0;
+}
+
+int printHelp()
+{
+    puts("filenAligner v1.0.0");
+    puts("Align multiple files based on selected columns.");
+    puts("https://github.com/liu-congcong/fileAligner");
+    puts("\nUsage:");
+    puts("  filenAligner [options]");
+    puts("\nOptions:");
+    puts("  -i    Path to the input files");
+    puts("        A header line for each file should be existed");
+    puts("  -t    Target columns for alignment");
+    puts("        Examples:");
+    puts("          '1,2 2,3' aligns file1 on columns 1, 2 and file2 on columns 2, 3");
+    puts("          '1,2' aligns all files on columns 1, 2");
+    puts("  -o    Path to the output file");
+    puts("  -s    Column separator in input files: table (default) | comma | space");
     return 0;
 }
 
@@ -231,7 +244,6 @@ int main(int argc, char *argv[])
 {
     char **fileList = malloc(1024 * sizeof(char *));
     memset(fileList, 0, 1024);
-    fileList[0] = printDatetime();
     int files = 1;
     int **targetList = malloc(1023 * sizeof(int *));
     int targets = 0;
@@ -241,13 +253,13 @@ int main(int argc, char *argv[])
 
     for (int i = 1; i < argc; i++)
     {
-        if (!strncasecmp("-i", argv[i], 2) || !strncasecmp("--i", argv[i], 3))
+        if (!strncasecmp("-i", argv[i], 2))
             flag = 1;
-        else if (!strncasecmp("-o", argv[i], 2) || !strncasecmp("--o", argv[i], 3))
+        else if (!strncasecmp("-o", argv[i], 2))
             flag = 2;
-        else if (!strncasecmp("-t", argv[i], 2) || !strncasecmp("--t", argv[i], 3))
+        else if (!strncasecmp("-t", argv[i], 2))
             flag = 3;
-        else if (!strncasecmp("-s", argv[i], 2) || !strncasecmp("--s", argv[i], 3))
+        else if (!strncasecmp("-s", argv[i], 2))
             flag = 4;
         else if (flag == 1)
             fileList[files++] = argv[i];
@@ -265,8 +277,8 @@ int main(int argc, char *argv[])
                 separator = '\t';
             else
             {
-                puts("-s/--separator: <table|comma|space>");
-                exit(EXIT_SUCCESS);
+                printHelp();
+                exit(EXIT_FAILURE);
             }
         }
     }
@@ -275,28 +287,13 @@ int main(int argc, char *argv[])
     {
         targets = files - 1;
         for (int i = 1; i < targets; i++)
-        {
-            targetList[i] = malloc(MAX_TARGETS * sizeof(int));
-            for (int j = 0; j < targets; j++)
-                targetList[i][j] = targetList[0][j];
-        }
+            targetList[i] = targetList[0];
     }
 
     if (files - 1 != targets || !fileList[0] || !targets)
     {
-        puts("\nAlign files according to the selected columns (https://github.com/liu-congcong/FileAligner)");
-        puts("Usage:");
-        printf("    %s -i <files> -t <cols> [-o <file>] [-s <sep>]\n", argv[0]);
-        printf("    %s -i input1 input2 -t 1,2,8 1,6,8 -o output -s t\n", argv[0]);
-        printf("    %s -i input1 input2 input3 -t 10,1 -o output -s c\n", argv[0]);
-        printf("    %s -i input1 input2 input3 input4 input5 -t 1\n", argv[0]);
-        puts("Options:");
-        puts("    -i/--inputs: <input1> ... <inputN> files with a header line");
-        puts("    -t/--targets: <1col1,...,1colM> ... <Ncol1,...,NcolM>");
-        puts("                  <col1,...,colM> for all files");
-        printf("    -o/--output: <output> default: %s\n", printDatetime());
-        puts("    -s/--separator: <table|comma|space> default: table\n");
-        exit(EXIT_SUCCESS);
+        printHelp();
+        exit(EXIT_FAILURE);
     }
     ioTest(fileList, files);
 
@@ -305,7 +302,6 @@ int main(int argc, char *argv[])
 
     char **headerLines = malloc(targets * sizeof(char *));
     char **blankLines = malloc(targets * sizeof(char *));
-
     readFiles(hashTable, headerLines, blankLines, fileList + 1, separator, targetList, targetColumns, targets);
     char *headerLine = createHeaderLine(targetColumns, headerLines, targets);
     output(hashTable, targets, headerLine, blankLines, fileList[0]);

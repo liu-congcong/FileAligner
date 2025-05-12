@@ -5,22 +5,20 @@ Align files according to the selected columns
 ## Usage
 
 ```bash
-git clone https://github.com/liu-congcong/FileAligner
-cd FileAligner
-gcc FileAligner.c -o FileAligner
-```
+filenAligner v1.0.0
+Align multiple files based on selected columns.
+https://github.com/liu-congcong/fileAligner
 
-```bash
-FileAligner -h
 Usage:
-    FileAligner -i <files> -t <cols> [-o <file>] [-s <sep>]
-    FileAligner -i input1 input2 -t 1,2,8 1,6,8 -o output -s t
-    FileAligner -i input1 input2 input3 -t 10,1 -o output -s c
-    FileAligner -i input1 input2 input3 input4 input5 -t 1
+  filenAligner [options]
+
 Options:
-    -i/--inputs: <input1> ... <inputN> files with a header line
-    -t/--targets: <1col1,...,1colM> ... <Ncol1,...,NcolM>
-                  <col1,...,colM> for all files
-    -o/--output: <output> default: 20231003-093838.txt
-    -s/--separator: <table|comma|space> default: table
+  -i    Path to the input files
+        A header line for each file should be existed
+  -t    Target columns for alignment
+        Examples:
+          '1,2 2,3' aligns file1 on columns 1, 2 and file2 on columns 2, 3
+          '1,2' aligns all files on columns 1, 2
+  -o    Path to the output file
+  -s    Column separator in input files: table (default) | comma | space
 ```
