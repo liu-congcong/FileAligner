@@ -1,6 +1,6 @@
 # FileAligner
 
-Align files according to the selected columns
+Align multiple files based on selected columns.
 
 ## Usage
 
